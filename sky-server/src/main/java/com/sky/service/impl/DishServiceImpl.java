@@ -8,10 +8,12 @@ import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
+import com.sky.entity.Setmeal;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
+import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,6 +34,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private SetmealMapper setmealMapper;
 
 
     /**
@@ -141,5 +146,47 @@ public class DishServiceImpl implements DishService {
 
             dishFlavorMapper.insert(flavors);
         }
+    }
+
+    /**
+     * 启售停售菜品
+     * @param status
+     * @param id
+     */
+    @Transactional
+    public void startOrStop(Integer status, Long id) {
+        Dish dish = Dish.builder()
+                .id(id)
+                .status(status)
+                .build();
+
+        dishMapper.update(dish);
+
+        //如果是停售操作,则菜品关联的套餐也要停售
+        if (status == StatusConstant.DISABLE) {
+            ArrayList<Long> dishIds = new ArrayList<>();
+            dishIds.add(id);
+            List<Long> setmealIdsByDishIds = setmealDishMapper.getSetmealIdsByDishIds(dishIds);
+            if (setmealIdsByDishIds != null && !setmealIdsByDishIds.isEmpty()) {
+                for (Long setmealId : setmealIdsByDishIds) {
+                    Setmeal setmeal = Setmeal.builder()
+                            .status(status)
+                            .id(setmealId)
+                            .build();
+
+                    setmealMapper.update(setmeal);
+                }
+            }
+        }
+    }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    public List<Dish> getByCategoryId(Long categoryId) {
+        List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
+        return dishes;
     }
 }
