@@ -12,7 +12,7 @@ import java.util.List;
 public interface ShoppingCartMapper {
 
     /**
-     * 添加购物车商品
+     * 条件查询购物车数据
      * @param shoppingCart
      * @return
      */
