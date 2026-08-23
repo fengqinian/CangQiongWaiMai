@@ -13,4 +13,11 @@ public interface OrderDetailMapper {
      * @param orderDetailList
      */
     void insert(List<OrderDetail> orderDetailList);
+
+    /**
+     * 根据订单id查询订单详细信息
+     * @param orderIds
+     * @return
+     */
+    List<OrderDetail> getByOrderId(List<Long> orderIds);
 }

@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * 菜品管理
  */
-@RestController
+@RestController("adminDishController")
 @RequestMapping("/admin/dish")
 @Slf4j
 @Api(tags = "菜品管理")
