@@ -1,0 +1,70 @@
+# 一键拉起 MySQL + Redis + 应用
+# 用法：docker compose up -d --build
+# 首次启动会自动执行 sky.sql 建库建表
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sky-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sky-server/src/main/resources/sql/sky.sql:/docker-entrypoint-initdb.d/01-sky.sql:ro
+      - sky-mysql-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: sky-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  app:
+    build: .
+    container_name: sky-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      # 数据源（对应 application.yml 里的 ${sky.datasource.*}）
+      SKY_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SKY_DATASOURCE_HOST: mysql
+      SKY_DATASOURCE_PORT: "3306"
+      SKY_DATASOURCE_DATABASE: sky_take_out
+      SKY_DATASOURCE_USERNAME: root
+      SKY_DATASOURCE_PASSWORD: root123
+      # Redis（对应 ${sky.redis.*}）
+      SKY_REDIS_HOST: redis
+      SKY_REDIS_PORT: "6379"
+      SKY_REDIS_PASSWORD: ""
+      SKY_REDIS_DATABASE: "10"
+      # 以下为可选项，不配置也不影响订单 / 缓存等核心链路
+      SKY_ALIOSS_ENDPOINT: ""
+      SKY_ALIOSS_BUCKET_NAME: ""
+      SKY_WECHAT_APPID: ""
+      SKY_WECHAT_SECRET: ""
+      SKY_SHOP_ADDRESS: "测试店铺"
+      SKY_BAIDU_AK: ""
+
+volumes:
+  sky-mysql-data:
